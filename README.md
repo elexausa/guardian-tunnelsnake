@@ -5,10 +5,7 @@ Enables communication with a Guardian device via UDP and eventually TCP, Serial,
 
 ## Usage
 1. Clone this repository to your workspace
-2. Create and activate virtualenv
-3. Install requirements
-
-    `pip install -r requirements.txt`
+2. Run using `python tunnelsnake.py`
 
 ## Requirements
 * Python
