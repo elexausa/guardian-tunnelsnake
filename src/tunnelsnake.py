@@ -1,5 +1,7 @@
 import socket, threading, time, json
 from pprint import pprint
+from enum import IntEnum
+import os
 
 # Todo items, placed at top for visibility
 todos = ("Add serial support", 
@@ -19,56 +21,64 @@ __copyright__ = "(c) Copyright 2018, Elexa Consumer Products, Inc."
 __version__ = "0.0.1"
 __status__ = "Development"
 
-def welcome():
-    """Displays welcome message with program information."""
-    
-    print " "
-    print " ######   ##     ##    ###    ########  ########  ####    ###    ##    ##"
-    print "##    ##  ##     ##   ## ##   ##     ## ##     ##  ##    ## ##   ###   ##" 
-    print "##        ##     ##  ##   ##  ##     ## ##     ##  ##   ##   ##  ####  ##"
-    print "##   #### ##     ## ##     ## ########  ##     ##  ##  ##     ## ## ## ##"
-    print "##    ##  ##     ## ######### ##   ##   ##     ##  ##  ######### ##  ####"
-    print "##    ##  ##     ## ##     ## ##    ##  ##     ##  ##  ##     ## ##   ###"
-    print " ######    #######  ##     ## ##     ## ########  #### ##     ## ##    ##"
-    print "                                                                 by Elexa"
-    print " "
-    print name + " (v" + __version__ + ", " + __status__ + ")\n"
-    print description
-    print " "
-    print __copyright__
-    print " "
-    print "Author: " + __author__
-    print "Email: " + __email__
-    print "Created: " + created
-    print " "
-    print "Todo:"
+class Utilities(object):
+    @staticmethod
+    def log_info(msg):
+        """Log message with INFO tag."""
+        print "[INFO]", msg
 
-    for todo in todos:
-        print " - " + todo
+    @staticmethod
+    def log_warn(msg):
+        """Log message with WARN tag."""
+        print "[WARN]", msg
 
-    print " "
-    print "-----"
-    print " "
+    @staticmethod
+    def log_err(msg):
+        """Log message with ERROR tag."""
+        print "[ERROR]", msg
 
-def log_info(msg):
-    """Log message with INFO tag."""
-    print "[INFO]", msg
+    @staticmethod
+    def separator():
+        """Prints a long separator."""
+        _, cols = os.popen('stty size', 'r').read().split()
 
-def log_warn(msg):
-    """Log message with WARN tag."""
-    print "[WARN]", msg
+        separator = ""
 
-def log_err(msg):
-    """Log message with ERROR tag."""
-    print "[ERROR]", msg
+        for x in xrange(int(cols)):
+            separator += "="
 
+        print " "
+        print separator
+        print " "
+
+    @staticmethod
+    def header(header):
+        """Prints a long separator."""
+        _, cols = os.popen('stty size', 'r').read().split()
+
+        separator = ""
+
+        for x in xrange(int(cols)):
+            separator += "="
+
+        print " "
+        print separator
+        print " " + str(header)
+        print separator
+        print " "
 
 class Guardian_Tunnel(object):
-    class Status:
-        OK, UDP_CONFIG_ERROR, INCORRECT_MODE, PACKET_ERROR, SOCKET_ERROR = range(0, 5)
+    class Status(IntEnum):
+        OK = 0
+        UDP_CONFIG_ERROR = 1 
+        INCORRECT_MODE = 2 
+        PACKET_ERROR = 3
+        SOCKET_ERROR = 4
 
-    class Mode:
-        UDP, TCP, Serial = range(0, 3)
+    class Mode(IntEnum):
+        UDP = 0
+        TCP = 1
+        Serial = 2
 
     def __init__(self, mode=Mode.UDP, udp_ip=None, udp_port=None):
         # Initial declarations
@@ -79,7 +89,7 @@ class Guardian_Tunnel(object):
         if self.mode == self.Mode.UDP:
             # Check that ip and port have been provided
             if udp_ip == None or udp_port == None:
-                log_err("UDP configuration error")
+                Utilities.log_err("UDP configuration error")
 
                 while True:
                     pass
@@ -87,6 +97,9 @@ class Guardian_Tunnel(object):
             # Store IP and port
             self.udp_ip = udp_ip
             self.udp_port = int(udp_port)
+        elif self.mode == self.Mode.TCP:
+            self.chatserver_ip = "channel01.guardiancloud.services" 
+            self.chatserver_port = "8888" 
         
     def open(self):
         """Opens tunnel to device with provided information."""
@@ -110,7 +123,7 @@ class Guardian_Tunnel(object):
             # Return status
             return self.Status.OK
         else:
-            log_err("Incorrect mode selected")
+            Utilities.log_err("Incorrect mode selected")
             return self.Status.INCORRECT_MODE
 
     def listen_udp(self):
@@ -118,11 +131,11 @@ class Guardian_Tunnel(object):
 
         # Exit if incorrect mode
         if self.mode != self.Mode.UDP:
-            log_err("Incorrect mode selected")
+            Utilities.log_err("Incorrect mode selected")
             return self.Status.INCORRECT_MODE
 
         # Listener started
-        log_info("UDP listener started for " + str(self.udp_ip) + ":" + str(self.udp_port))            
+        Utilities.log_info("UDP listener started for " + str(self.udp_ip) + ":" + str(self.udp_port))            
 
         while True:
             # Receive data
@@ -134,7 +147,7 @@ class Guardian_Tunnel(object):
             # Display
             print " "
             print "Received packet (from " + addr[0] + "): "
-            print "---"
+            print " "
             pprint(parsed_json)
             print " "
 
@@ -143,7 +156,7 @@ class Guardian_Tunnel(object):
 
         # Exit if incorrect mode
         if self.mode != self.Mode.UDP:
-            log_err("Incorrect mode selected")
+            Utilities.log_err("Incorrect mode selected")
             return self.Status.INCORRECT_MODE
 
         # Close socket
@@ -160,17 +173,17 @@ class Guardian_Tunnel(object):
 
         # Exit if incorrect mode
         if self.mode != self.Mode.UDP:
-            log_err("Incorrect mode selected")
+            Utilities.log_err("Incorrect mode selected")
             return self.Status.INCORRECT_MODE
 
         # Socket open?
         if self.sock == None:
-            log_err("Please open the UDP socket")
+            Utilities.log_err("Please open the UDP socket")
             return self.Status.SOCKET_ERROR
 
         # Valid packet provided?
         if packet == None:
-            log_err("Invalid packet provided")
+            Utilities.log_err("Invalid packet provided")
             return self.Status.PACKET_ERROR
 
         # All good, send packet
@@ -179,47 +192,161 @@ class Guardian_Tunnel(object):
         # Return status
         return self.Status.OK
 
+class Guardian_Valve_Controller_V1_Commands(object):
+    GET_VALVE = '{"command":"get_valve","type":0,"silent":0}'
+    MOTOR_ACTION_OPEN = '{"command":"motor_action","action":"open","type":0}'
+    MOTOR_ACTION_CLOSE = '{"command":"motor_action","action":"close","type":0}'
+    GET_SENSOR_LIST = '{"command":"get_sensor_list","type":0,"silent":0}'
+    UPDATE_ESP32 = '{{"command":"update_esp32","address":"{ip}","port":"{port}","filename":"{path}","type":0}}'
+    UPDATE_LORA = '{{"command":"update_lora","address":"{ip}","port":"{port}","filename":"{path}","type":0}}'
+    CANCEL_LEAK = '{"command":"leak_ignore", "type":0}'
+    ENABLE_LEAK_CANCEL = '{"command":"leak_ignore_config","option":1,"type":0}'
+    DISABLE_LEAK_CANCEL = '{"command":"leak_ignore_config","option":0,"type":0}'
 
-class Tunnel_Command_Processor(object):
-    def __init__(self):
-        pass
-    
+class Menu_Helper(object):
     @staticmethod
-    def process_command(self, str):
-        pass
+    def welcome():
+        """Displays welcome message with program information."""
+        
+        print " "
+        print " ######   ##     ##    ###    ########  ########  ####    ###    ##    ##"
+        print "##    ##  ##     ##   ## ##   ##     ## ##     ##  ##    ## ##   ###   ##" 
+        print "##        ##     ##  ##   ##  ##     ## ##     ##  ##   ##   ##  ####  ##"
+        print "##   #### ##     ## ##     ## ########  ##     ##  ##  ##     ## ## ## ##"
+        print "##    ##  ##     ## ######### ##   ##   ##     ##  ##  ######### ##  ####"
+        print "##    ##  ##     ## ##     ## ##    ##  ##     ##  ##  ##     ## ##   ###"
+        print " ######    #######  ##     ## ##     ## ########  #### ##     ## ##    ##"
+        print "                                                                 by Elexa"
+        print " "
+        print name + " (v" + __version__ + ", " + __status__ + ")\n"
+        print description
+        print " "
+        print __copyright__
+        print " "
+        print "Author: " + __author__
+        print "Email: " + __email__
+        print "Created: " + created
+        print " "
+        print "Todo:"
 
+        for todo in todos:
+            print " - " + todo
+
+        print " "
+
+    @staticmethod
+    def choose_mode():
+        # Print header
+        Utilities.header("Available Modes")
+
+        # Display modes
+        for mode in Guardian_Tunnel.Mode:
+            print " " + str(int(mode)) + ".) " + str(mode)
+
+        # New line
+        print " "
+
+        # Accept choice
+        choice = raw_input("Please choose a mode by entering its number: ")
+
+        # Validate choice
+        if int(choice) < 0 or int(choice) > len(list(Guardian_Tunnel.Mode)):
+            raise Exception("Not a valid choice")
+
+        # Validated, return
+        return int(choice)
 
 if __name__ == "__main__":
     try:
+        # Create tunnel var
+        tunnel = None
+
         # Print welcome page
-        welcome()
+        Menu_Helper.welcome()
 
-        # Request device info
-        device_ip = raw_input("Guardian device IP: ")
-        device_port = raw_input("Guardian device port: ")
+        # Choose mode
+        chosen_mode = Menu_Helper.choose_mode()
 
-        # Initialize guardian tunnel in UDP mode
-        tunnel = Guardian_Tunnel(Guardian_Tunnel.Mode.UDP, device_ip, device_port)
+        if chosen_mode == int(Guardian_Tunnel.Mode.UDP):
+            # Request device info
+            device_ip = raw_input("Guardian device IP: ")
+            device_port = raw_input("Guardian device port: ")
+        
+            # Initialize guardian tunnel in UDP mode
+            tunnel = Guardian_Tunnel(Guardian_Tunnel.Mode.UDP, device_ip, device_port)
+        elif chosen_mode == int(Guardian_Tunnel.Mode.TCP):
+            raise Exception("Not currently supported.")
+        elif chosen_mode == int(Guardian_Tunnel.Mode.Serial):
+            raise Exception("Not currently supported.")
 
         # Open socket
         tunnel.open()
 
-        log_info("Waiting for packet to send...")
+        Utilities.log_info("Waiting for packet to send...\n")
 
         # Enter main loop
         while True:
             # Accept packet
-            packet = raw_input("")
+            packet = raw_input("PACKET> ")
 
             # Exit?
             if packet.lower() in ("quit", "bye", "leave"):
-                log_info("Exit requested")
+                Utilities.log_info("Exit requested")
                 raise SystemExit
+
+            # Parse packet
+            # TODO: Move this into its own handler
+
+            split_packet = packet.lower().split(':')
+            command = split_packet[0]
+            params = []
+
+            # Params
+            if len(split_packet) > 1:
+                raw_params = split_packet[1]
+                # Parse params
+                params = raw_params.split(',')
+
+            if command == "g": # Get valve
+                packet = Guardian_Valve_Controller_V1_Commands.GET_VALVE
+            
+            elif command == "uesp": # Update EPS
+                # Validate param length
+                if len(params) != 3:
+                    Utilities.log_err("Invalid packet. Check formatting. \n\n\tuesp:<ip>,<port>,<path>\n")
+                    continue
+
+                # FIXME: This needs to be validated more (regex)!
+                ip = params[0]
+                port = params[1]
+                path = params[2]
+
+                packet = Guardian_Valve_Controller_V1_Commands.UPDATE_ESP32.format(ip=ip, port=port, path=path)
+            
+            elif command == "ulora":
+                # Validate param length
+                if len(params) != 3:
+                    Utilities.log_err("Invalid packet. Check formatting. \n\n\tulora:<ip>,<port>,<path>\n")
+                    continue
+
+                # FIXME: This needs to be validated more (regex)!
+                ip = params[0]
+                port = params[1]
+                path = params[2]
+
+                packet = Guardian_Valve_Controller_V1_Commands.UPDATE_ESP32.format(ip=ip, port=port, path=path)
+
+            # Log packet being sent
+            Utilities.log_info("Sending packet: {p}".format(p=packet))
 
             # Send packet
             tunnel.send_packet(packet)
 
+            # Wait a moment to allow response
+            # FIXME: This is ugly but to prevent the response from writing to the console AFTER raw_input has been sent (looks bad)
+            time.sleep(1)
+
     except (KeyboardInterrupt, SystemExit):
         # Clean exit
         print ""
-        log_info(name + " (v" + __version__ + ", " + __status__ + ") session ended")
+        Utilities.log_info(name + " (v" + __version__ + ", " + __status__ + ") session ended")
