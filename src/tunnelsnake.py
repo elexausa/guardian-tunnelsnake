@@ -204,6 +204,7 @@ class Guardian_Valve_Controller_V1_Commands(object):
     DISABLE_LEAK_CANCEL = '{"command":"leak_ignore_config","option":0,"type":0}'
     CLEAR_CALIBRATION = '{"command":"motor_erase_calibration","type":0}'
     SET_WIFI_AP = '{{"command":"set_WIFI_ap","type":0,"option":{option}}}'
+    SET_WIFI_STATION = '{{"command":"set_WIFI_station","SSID":"{ssid}","PASS":"{password}","type":0}}'
 
 class Menu_Helper(object):
     @staticmethod
@@ -299,7 +300,7 @@ if __name__ == "__main__":
             # Parse packet
             # TODO: Move this into its own handler
 
-            split_packet = packet.lower().split(':')
+            split_packet = packet.split(':')
             command = split_packet[0]
             params = []
 
@@ -349,7 +350,20 @@ if __name__ == "__main__":
 
                 # FIXME: This needs to be validated more (regex)!
                 option = params[0]
+
                 packet = Guardian_Valve_Controller_V1_Commands.SET_WIFI_AP.format(option=option)
+
+            elif command == "swifi": # Set wifi station
+                # Validate param length
+                if len(params) != 2:
+                    Utilities.log_err("Invalid packet. Check formatting. \n\n\tswifi:<ssid>,<password>\n")
+                    continue
+
+                # FIXME: This needs to be validated more (regex)!
+                ssid = params[0]
+                password = params[1]
+
+                packet = Guardian_Valve_Controller_V1_Commands.SET_WIFI_STATION.format(ssid=ssid,password=password)
 
             elif command == "cc": # Clear calibration
                 packet = Guardian_Valve_Controller_V1_Commands.CLEAR_CALIBRATION
