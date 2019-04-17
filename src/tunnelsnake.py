@@ -204,7 +204,7 @@ class Guardian_Valve_Controller_V1_Commands(object):
     DISABLE_LEAK_CANCEL = '{"command":"leak_ignore_config","option":0,"type":0}'
     CLEAR_CALIBRATION = '{"command":"motor_erase_calibration","type":0}'
     SET_WIFI_AP = '{{"command":"set_WIFI_ap","type":0,"option":{option}}}'
-    SET_WIFI_STATION = '{{"command":"set_WIFI_station","SSID":"{ssid}","PASS":"{password}","type":0}}'
+    SET_WIFI_STATION = '{{"command":"set_WIFI_station","SSID":"{ssid}","PASS":"{password}","type":0,"connect":1}}'
 
 class Menu_Helper(object):
     @staticmethod
