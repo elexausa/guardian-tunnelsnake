@@ -202,6 +202,9 @@ class Guardian_Valve_Controller_V1_Commands(object):
     CANCEL_LEAK = '{"command":"leak_ignore", "type":0}'
     ENABLE_LEAK_CANCEL = '{"command":"leak_ignore_config","option":1,"type":0}'
     DISABLE_LEAK_CANCEL = '{"command":"leak_ignore_config","option":0,"type":0}'
+    CLEAR_CALIBRATION = '{"command":"motor_erase_calibration","type":0}'
+    SET_WIFI_AP = '{{"command":"set_WIFI_ap","type":0,"option":{option}}}'
+    SET_WIFI_STATION = '{{"command":"set_WIFI_station","SSID":"{ssid}","PASS":"{password}","type":0,"connect":1}}'
 
 class Menu_Helper(object):
     @staticmethod
@@ -240,7 +243,7 @@ class Menu_Helper(object):
         Utilities.header("Available Modes")
 
         # Display modes
-        for mode in Guardian_Tunnel.Mode:
+        for mode in iter(Guardian_Tunnel.Mode):
             print " " + str(int(mode)) + ".) " + str(mode)
 
         # New line
@@ -297,7 +300,7 @@ if __name__ == "__main__":
             # Parse packet
             # TODO: Move this into its own handler
 
-            split_packet = packet.lower().split(':')
+            split_packet = packet.split(':')
             command = split_packet[0]
             params = []
 
@@ -307,8 +310,11 @@ if __name__ == "__main__":
                 # Parse params
                 params = raw_params.split(',')
 
-            if command == "g": # Get valve
+            if command == "gv": # Get valve
                 packet = Guardian_Valve_Controller_V1_Commands.GET_VALVE
+                       
+            elif command == "gs": # Get sensors
+                packet = Guardian_Valve_Controller_V1_Commands.GET_SENSOR_LIST
             
             elif command == "uesp": # Update EPS
                 # Validate param length
@@ -334,7 +340,43 @@ if __name__ == "__main__":
                 port = params[1]
                 path = params[2]
 
-                packet = Guardian_Valve_Controller_V1_Commands.UPDATE_ESP32.format(ip=ip, port=port, path=path)
+                packet = Guardian_Valve_Controller_V1_Commands.UPDATE_LORA.format(ip=ip, port=port, path=path)
+
+            elif command == "sap": # Set wifi access point on/off
+                # Validate param length
+                if len(params) != 1:
+                    Utilities.log_err("Invalid packet. Check formatting. \n\n\tsap:<option: 1/0>\n")
+                    continue
+
+                # FIXME: This needs to be validated more (regex)!
+                option = params[0]
+
+                packet = Guardian_Valve_Controller_V1_Commands.SET_WIFI_AP.format(option=option)
+
+            elif command == "swifi": # Set wifi station
+                # Validate param length
+                if len(params) != 2:
+                    Utilities.log_err("Invalid packet. Check formatting. \n\n\tswifi:<ssid>,<password>\n")
+                    continue
+
+                # FIXME: This needs to be validated more (regex)!
+                ssid = params[0]
+                password = params[1]
+
+                packet = Guardian_Valve_Controller_V1_Commands.SET_WIFI_STATION.format(ssid=ssid,password=password)
+
+            elif command == "cc": # Clear calibration
+                packet = Guardian_Valve_Controller_V1_Commands.CLEAR_CALIBRATION
+
+            elif command == "open": # Open valve
+                packet = Guardian_Valve_Controller_V1_Commands.MOTOR_ACTION_OPEN
+
+            elif command == "close": # Close valve
+                packet = Guardian_Valve_Controller_V1_Commands.MOTOR_ACTION_CLOSE
+
+            else:
+                Utilities.log_err("Unknown command")
+                continue
 
             # Log packet being sent
             Utilities.log_info("Sending packet: {p}".format(p=packet))
@@ -343,7 +385,8 @@ if __name__ == "__main__":
             tunnel.send_packet(packet)
 
             # Wait a moment to allow response
-            # FIXME: This is ugly but to prevent the response from writing to the console AFTER raw_input has been sent (looks bad)
+            # FIXME: This is ugly but to prevent the response from writing 
+            # to the console AFTER raw_input has been sent (looks bad)
             time.sleep(1)
 
     except (KeyboardInterrupt, SystemExit):
